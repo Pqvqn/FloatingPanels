@@ -10,10 +10,13 @@ class SlotContainer(QFrame):
     Base class for slot containers that hold subpanels.
     """
 
-    def __init__(self, parent_panel: PanelWidget, slot_name: str):
+    def __init__(self, parent_panel: PanelWidget, slot_name: str, allowed_types: set = None, drags=True, drops=True):
         super(SlotContainer, self).__init__()
         self.parent_panel = parent_panel
-        self.slot_name = slot_name
+        self.slot_name = slot_name  # Name used to reference these slots within the database
+        self.allowed_types = allowed_types  # Types of panels allowed to fill this slot
+        self.drops = drops  # Whether panels can be dropped into this slot
+        self.drags = drags  # Whether panels can be dragged out of this slot
         self.setFrameStyle(QFrame.Panel | QFrame.Plain)
 
     def update_from(self, idx_to_id: dict[tuple[str, int], str | None]):
@@ -24,18 +27,25 @@ class SlotContainer(QFrame):
         """
         raise Exception("Update not implemented in base class")
 
+    def can_accept(self, panelid: str) -> bool:
+        """
+        Returns whether the given panelid can be added to this panel by the user
+
+        :param panelid: ID to check for acceptance
+        :return: Whether the ID can be added
+        """
+        return self.drops and (self.allowed_types is None
+                               or self.parent_panel.manager.type_of_panel(panelid) in self.allowed_types)
+
 
 class SingleContainer(SlotContainer):
     """
     Type of container that holds a single panel of a specified set of types.
     """
 
-    def __init__(self, parent_panel: PanelWidget, slot_name: str, allowed_types: set = None, drags=True, drops=True):
-        super(SingleContainer, self).__init__(parent_panel, slot_name)
+    def __init__(self, parent_panel: PanelWidget, slot_name: str, **kwargs):
+        super(SingleContainer, self).__init__(parent_panel, slot_name, **kwargs)
 
-        self.allowed_types = allowed_types  # Types of panels allowed to fill this slot
-        self.drops = drops  # Whether panels can be dropped into this slot
-        self.drags = drags  # Whether panels can be dragged out of this slot
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
@@ -56,28 +66,23 @@ class SingleContainer(SlotContainer):
             return self.layout.itemAt(0).widget()
 
     def dragEnterEvent(self, e):
-        # Only accept if drops enabled
-        if not self.drops:
-            return
-
         # Accept drags with text, as these hold panel id
-        if e.mimeData().hasText():
+        # Check that the id is allowed
+        if e.mimeData().hasText() and self.can_accept(e.mimeData().text()):
             e.accept()
 
     def dropEvent(self, e):
-        # Only accept if drops enabled
-        if not self.drops:
+        panelid = e.mimeData().text()
+
+        # Check if this drop can be accepted
+        if not self.can_accept(panelid):
             return
 
-        panelid = e.mimeData().text()
-        # Only accept drops from panel widgets in the allowed type, and only if the container is empty
-        if self.layout.count() == 0 and \
-                (self.allowed_types is None or self.parent_panel.manager.type_of_panel(panelid) in self.allowed_types):
-            # Request addition from parent
-            self.parent_panel.pass_to_db(slots={(self.slot_name, 0): panelid})
+        # Request addition from parent
+        self.parent_panel.pass_to_db(slots={(self.slot_name, 0): panelid})
 
-            # Confirm the drop
-            e.accept()
+        # Confirm the drop
+        e.accept()
 
     def request_removal(self):
         """
@@ -98,6 +103,13 @@ class SingleContainer(SlotContainer):
                 wid.setParent(None)
 
             else:
+                # Check if there's already a panel in this slot before adding new one
+                if self.get_panel_widget() is not None:
+                    # Remove current from layout to make room
+                    wid = self.get_panel_widget()
+                    self.layout.removeWidget(wid)
+                    wid.setParent(None)
+
                 # Create widget and add to layout if indicated
                 new_widget = self.parent_panel.make_from_db(panelid)
                 new_widget.request_remove.connect(lambda x: self.request_removal())
@@ -112,8 +124,8 @@ class ListContainer(SlotContainer):
     Type of container that holds a rearrangeable list of panels.
     """
 
-    def __init__(self, parent_panel: PanelWidget, slot_name: str, horizontal=False):
-        super(ListContainer, self).__init__(parent_panel, slot_name)
+    def __init__(self, parent_panel: PanelWidget, slot_name: str, horizontal=False, **kwargs):
+        super(ListContainer, self).__init__(parent_panel, slot_name, **kwargs)
 
         # List can either grow horizontally or vertically
         self.horizontal = horizontal
@@ -188,6 +200,8 @@ class ListContainer(SlotContainer):
                     # New panel widget must be created and inserted from database
                     new_widget = self.parent_panel.make_from_db(new_panelid)
                     new_widget.request_remove.connect(self.request_removal)
+                    if not self.drags:
+                        new_widget.lock()
                     self.container_layout.insertWidget(new_idx, new_widget)
                 else:
                     # Panel was already in the container; add its widget back at new position
@@ -237,13 +251,18 @@ class ListContainer(SlotContainer):
 
     def dragEnterEvent(self, e):
         # Accept drags with text, as these hold panel id
-        if e.mimeData().hasText():
+        # Check that the id is allowed
+        if e.mimeData().hasText() and self.can_accept(e.mimeData().text()):
             e.accept()
 
     def dropEvent(self, e):
         pos = e.pos()
         added = False  # Marks whether insertion index was found inside of the list
         panelid = e.mimeData().text()
+
+        # Check if this drop can be accepted
+        if not self.can_accept(panelid):
+            return
 
         # Check each position to find index
         for n in range(self.container_layout.count()):
