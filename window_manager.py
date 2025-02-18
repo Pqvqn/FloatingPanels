@@ -34,7 +34,7 @@ class WindowManager(SingleApplication):
     their information to the original one and then close.
     """
 
-    PANEL_TYPES = {PShelfVert, PTask}  # Types of panels currently able to be created.
+    PANEL_TYPES = {PShelfVert, PShelfHoriz, PTask}  # Types of panels currently able to be created.
     # TODO: Load panel types automatically from installed scripts
 
     def __init__(self, sid, db_path, *argv):

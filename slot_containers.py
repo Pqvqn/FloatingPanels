@@ -1,5 +1,5 @@
 from PySide6.QtGui import Qt
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget, QScrollArea
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget, QScrollArea, QHBoxLayout
 
 from panel_widget import PanelWidget
 
@@ -20,12 +20,18 @@ class ListContainer(SlotContainer):
     Type of container that holds a rearrangeable list of panels.
     """
 
-    def __init__(self, parent_panel: PanelWidget, slot_name: str):
+    def __init__(self, parent_panel: PanelWidget, slot_name: str, horizontal=False):
         super(ListContainer, self).__init__(parent_panel)
 
         self.slot_name = slot_name
-        self.container_layout = QVBoxLayout()
-        self.container_layout.setAlignment(Qt.AlignTop)
+        # List can either grow horizontally or vertically
+        self.horizontal = horizontal
+        if horizontal:
+            self.container_layout = QHBoxLayout()
+            self.container_layout.setAlignment(Qt.AlignLeft)
+        else:
+            self.container_layout = QVBoxLayout()
+            self.container_layout.setAlignment(Qt.AlignTop)
         container = QWidget()
         container.setLayout(self.container_layout)
         scroll = QScrollArea()
@@ -157,7 +163,13 @@ class ListContainer(SlotContainer):
         for n in range(self.container_layout.count()):
             w = self.panel_widget_at(n)
             # Check if drop point was on this widget
-            if pos.y() < w.y() + w.size().height():
+            # Calculation depends on whether list is horizontal or vertical
+            if self.horizontal:
+                at_index = pos.x() < w.x() + w.size().width()
+            else:
+                at_index = pos.y() < w.y() + w.size().height()
+
+            if at_index:
                 # If so, insert in place, shifting old widget later
                 self.request_addition(panelid, n)
                 added = True

@@ -1,2 +1,6 @@
 # Exclude the database
 *.sqlite
+
+venv/
+.idea/
+__pycache__/
