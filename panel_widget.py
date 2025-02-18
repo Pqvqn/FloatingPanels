@@ -51,6 +51,14 @@ class PanelWidget(QFrame):
         """
         return {}
 
+    @staticmethod
+    def default_attributes() -> dict[str, object]:
+        """
+        Gets dictionary of initial attribute values for a new panel
+        :return: Dictionary of attribute names and the default value
+        """
+        return {}
+
     def eventFilter(self, source, event: QEvent) -> bool:
         # Announce when this panel is deleted by user
         if event.type() == QEvent.DeferredDelete or event.type() == QEvent.Close:
@@ -65,9 +73,9 @@ class PanelWidget(QFrame):
         :param attributes: Attributes to update widget with.
         :param slots: Slots to update widget with.
         """
-        if len(attributes) > 0:
+        if attributes is not None:
             self.fill_attributes(attributes)
-        if len(slots) > 0:
+        if slots is not None:
             self.fill_slots(slots)
 
     def fill_attributes(self, attrs: dict[str, object]):

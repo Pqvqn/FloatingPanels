@@ -34,7 +34,7 @@ class WindowManager(SingleApplication):
     their information to the original one and then close.
     """
 
-    PANEL_TYPES = {PShelfVert, PShelfHoriz, PTask}  # Types of panels currently able to be created.
+    PANEL_TYPES = {PShelfVert, PShelfHoriz, PTask, PNumber}  # Types of panels currently able to be created.
     # TODO: Load panel types automatically from installed scripts
 
     def __init__(self, sid, db_path, *argv):
@@ -95,9 +95,12 @@ class WindowManager(SingleApplication):
                 # If the type has attributes, add this panel's attributes to the type's table
                 self.db_cur.execute("INSERT INTO {}(panelid) VALUES (?)".format(panel_type), (panelid,))
             self.db_con.commit()
+            self.update_panel(widget, widget.default_attributes(), None)
+            widget.init_from_dicts(None, self.get_slots_dict(widget))
+        else:
 
-        # Initialize all of the panel's values from the database
-        widget.init_from_dicts(self.get_attributes_dict(widget), self.get_slots_dict(widget))
+            # Initialize all of the panel's values from the database
+            widget.init_from_dicts(self.get_attributes_dict(widget), self.get_slots_dict(widget))
 
         return widget
 
@@ -174,7 +177,7 @@ class WindowManager(SingleApplication):
             # Construct a dictionary from the row's column values
             return {k: row[k] for k in row.keys()}
         else:
-            return {}
+            return None
 
     def get_slots_dict(self, panel_widget: PanelWidget) -> dict[tuple[str, int], str]:
         """
@@ -191,7 +194,7 @@ class WindowManager(SingleApplication):
             ret_dict = {(r['slot_name'], r['slot_num']): r['child'] for r in rows}
             return ret_dict
         else:
-            return {}
+            return None
 
     def update_panel(self, panel_widget: PanelWidget, attribute_dict: dict[str, object],
                      slots_dict: dict[tuple[str, int], str]):
