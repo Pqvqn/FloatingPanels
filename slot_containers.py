@@ -147,9 +147,18 @@ class ListContainer(SlotContainer):
         self.setLayout(layout)
         self.setAcceptDrops(True)
 
+    def num_entries(self) -> int:
+        """
+        Number of panel widgets in this list.
+
+        :return: Count of panel widgets in this list layout
+        """
+        return self.container_layout.count()
+
     def panel_widget_at(self, idx) -> PanelWidget:
         """
         Returns panel widget found at a position in the list
+
         :param idx: Index to find panel at
         :return: Panel widget in list
         """
@@ -185,7 +194,7 @@ class ListContainer(SlotContainer):
         if insert_idx < 0:
             insert_idx = self.container_layout.count()
 
-        unaddressed = set(idx_to_id.keys())  # Set of slots that still need changes
+        unaddressed = {x for x in idx_to_id.keys() if x[0] == self.slot_name}  # Set of slots that still need changes
         new_idx = insert_idx  # Tracks list as it is iterated for updates, starting at the removal point
         # Iterate list positions
         while len(unaddressed) > 0:

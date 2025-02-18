@@ -38,7 +38,7 @@ class WindowManager(SingleApplication):
 
     # Types of panels currently able to be created.
     PANEL_TYPES = {shelves.PShelfVert, shelves.PShelfHoriz, simple_inputs.PTask, simple_inputs.PNumber,
-                   types.PType, shelves.PFootnote, types.PCreator}
+                   types.PType, shelves.PFootnote, types.PCreator, types.PFinder}
     # TODO: Load panel types automatically from installed scripts
 
     def __init__(self, sid, db_path, *argv):
@@ -291,6 +291,17 @@ class WindowManager(SingleApplication):
         # Format query result as a list of lists of tuples
         return [[(step[:step.index(':')], int(step[step.index(':')+1:])) for step in path['path'].split("/")] for path
                 in res.fetchall()]
+
+    def query_panels(self, match_type: str) -> list[str]:
+        """
+        Returns a list of panelids that matched the given query.
+
+        :param match_type: The type of panel to query the list for
+        :return: List of IDs for panels that match the query
+        """
+        res = self.db_cur.execute("SELECT id FROM Panels WHERE module=?", (match_type,))
+        rows = res.fetchall()
+        return [x['id'] for x in rows]
 
     def drag_panel(self, panel: PanelWidget, action: Qt.DropActions):
         """
