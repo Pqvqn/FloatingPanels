@@ -19,7 +19,7 @@ class PanelWidget(QFrame):
     # Occurs when the user requests that this widget be removed from its parent. Pass itself
     request_remove = Signal(QWidget)
 
-    def __init__(self, name: str, manager):
+    def __init__(self, name: str, manager, system_authority=False):
         super(PanelWidget, self).__init__()
 
         self.setFrameStyle(QFrame.Panel | QFrame.Plain)
@@ -30,8 +30,8 @@ class PanelWidget(QFrame):
         self.setWindowTitle(self.name)
 
         self.installEventFilter(self)
-        # Initiate database table for this type if it doesn't already exist
-        self.manager.try_create_panel_table(self)
+        # Initiate database for this type if it isn't already initialized
+        self.manager.try_init_type_in_db(self)
 
         self.dragStartPosition = None
 
@@ -58,6 +58,15 @@ class PanelWidget(QFrame):
         :return: Dictionary of attribute names and the default value
         """
         return {}
+
+    @staticmethod
+    def allow_user_creation() -> bool:
+        """
+        Boolean representing whether the user is allowed to create
+        new instances of this type
+        :return: True if user should be allowed to create this type
+        """
+        return True
 
     def eventFilter(self, source, event: QEvent) -> bool:
         # Announce when this panel is deleted by user

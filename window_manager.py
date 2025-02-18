@@ -1,9 +1,11 @@
 import sqlite3
+import types
 
 from PySide6.QtCore import QMimeData
 from PySide6.QtGui import QDrag, QPixmap, Qt
 
-from panels.demo_panels import *
+from panel_widget import PanelWidget
+from panels import *
 from single_application import SingleApplication
 
 
@@ -34,7 +36,9 @@ class WindowManager(SingleApplication):
     their information to the original one and then close.
     """
 
-    PANEL_TYPES = {PShelfVert, PShelfHoriz, PTask, PNumber}  # Types of panels currently able to be created.
+    # Types of panels currently able to be created.
+    PANEL_TYPES = {shelves.PShelfVert, shelves.PShelfHoriz, simple_inputs.PTask, simple_inputs.PNumber,
+                   types.PType}
     # TODO: Load panel types automatically from installed scripts
 
     def __init__(self, sid, db_path, *argv):
@@ -78,11 +82,14 @@ class WindowManager(SingleApplication):
         if panel_type is not None:
             # Get class for panel type if given
             panel_class = self.panel_classes[panel_type]
+            if not panel_class.allow_user_creation():
+                raise Exception("User cannot create new panels of this type")
         else:
             # If type not given, find it as part of the panel's metadata in the database
             res = self.db_cur.execute("SELECT module FROM Panels WHERE id = ?", (panelid,))
             entry = res.fetchone()
             panel_class = self.panel_classes[entry[0]]
+
 
         # Form the new widget
         widget = panel_class(panelid, self)
@@ -140,12 +147,21 @@ class WindowManager(SingleApplication):
         if len(self.windows[name]) == 0:
             del self.windows[name]
 
-    def try_create_panel_table(self, panel_widget: PanelWidget):
+    def try_init_type_in_db(self, panel_widget: PanelWidget):
         """
-        Creates database table for the panel widget's type if one is needed.
+        If needed, create a database table and type panel for the panel's type.
 
-        :param panel_widget: Widget to create a new table for the type of.
+        :param panel_widget: Widget whose type should have its initialization attempted.
         """
+
+        res = self.db_cur.execute("SELECT * from Panels WHERE module='type' and id=?", (panel_widget.panel_type(),))
+        # Type already initialized in table, don't need to add it
+        if res.fetchone() is not None:
+            return
+
+        # Add a panel of type 'type' to represent this type
+        self.db_cur.execute("INSERT INTO Panels VALUES (?, ?)", (panel_widget.panel_type(), 'type'))
+        self.db_con.commit()
 
         # Only needs a table if the type has attributes
         attributes = panel_widget.attributes()
