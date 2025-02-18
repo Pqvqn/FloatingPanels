@@ -48,7 +48,7 @@ class PTask(PanelWidget):
             # Handle toggle of checkbox
             self.checkbox.setText("✅" if bool(attrs["checked"]) else "")
 
-    def fill_slots(self, slots: dict[tuple[str, int], str]):
+    def fill_slots(self, slots: dict[tuple[str, int], str | None]):
         raise NotImplementedError("Tasks have no slots; cannot fill")
 
     def get_slot_widget(self, slot: tuple[str, int]) -> 'PanelWidget':
@@ -98,7 +98,7 @@ class PNumber(PanelWidget):
             # Handle change in value
             self.num.setValue(attrs["value"])
 
-    def fill_slots(self, slots: dict[tuple[str, int], str]):
+    def fill_slots(self, slots: dict[tuple[str, int], str | None]):
         raise NotImplementedError("Numbers have no slots; cannot fill")
 
     def get_slot_widget(self, slot: tuple[str, int]) -> 'PanelWidget':

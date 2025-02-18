@@ -9,10 +9,63 @@ class SlotContainer(QFrame):
     Base class for slot containers that hold subpanels.
     """
 
-    def __init__(self, parent_panel: PanelWidget):
+    def __init__(self, parent_panel: PanelWidget, slot_name: str):
         super(SlotContainer, self).__init__()
         self.parent_panel = parent_panel
+        self.slot_name = slot_name
         self.setFrameStyle(QFrame.Panel | QFrame.Plain)
+
+    def update_from(self, idx_to_id: dict[tuple[str, int], str | None]):
+        raise Exception("Update not implemented in base class")
+
+
+class SingleContainer(SlotContainer):
+    """
+    Type of container that holds a single panel of a specified set of types.
+    """
+
+    def __init__(self, parent_panel: PanelWidget, slot_name: str, allowed_types: set = None):
+        super(SingleContainer, self).__init__(parent_panel, slot_name)
+
+        self.allowed_types = allowed_types
+        self.layout = QVBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self.layout)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, e):
+        # Accept drags with text, as these hold panel id
+        if e.mimeData().hasText():
+            e.accept()
+
+    def dropEvent(self, e):
+        panelid = e.mimeData().text()
+        # Only accept drops from panel widgets in the allowed type, and only if the container is empty
+        if self.layout.count() == 0 and \
+                (self.allowed_types is None or self.parent_panel.manager.type_of_panel(panelid) in self.allowed_types):
+            # Request addition from parent
+            self.parent_panel.pass_to_db(slots={(self.slot_name, 0): panelid})
+
+            # Confirm the drop
+            e.accept()
+
+    def request_removal(self):
+        # Request removal from parent
+        self.parent_panel.pass_to_db(slots={(self.slot_name, 0): None})
+
+    def update_from(self, idx_to_id: dict[tuple[str, int], str | None]):
+        key = (self.slot_name, 0)
+        # Search in update dict for the key
+        if key in idx_to_id:
+            panelid = idx_to_id[key]
+            if panelid is None:
+                # Remove from layout if indicated
+                self.layout.removeWidget(self.layout.itemAt(0).widget())
+            else:
+                # Create widget and add to layout if indicated
+                new_widget = self.parent_panel.make_from_db(panelid)
+                new_widget.request_remove.connect(lambda x: self.request_removal)
+                self.layout.addWidget(new_widget)
 
 
 class ListContainer(SlotContainer):
@@ -21,9 +74,8 @@ class ListContainer(SlotContainer):
     """
 
     def __init__(self, parent_panel: PanelWidget, slot_name: str, horizontal=False):
-        super(ListContainer, self).__init__(parent_panel)
+        super(ListContainer, self).__init__(parent_panel, slot_name)
 
-        self.slot_name = slot_name
         # List can either grow horizontally or vertically
         self.horizontal = horizontal
         if horizontal:
@@ -52,7 +104,7 @@ class ListContainer(SlotContainer):
         """
         return self.container_layout.itemAt(idx).widget()
 
-    def adjust_list(self, idx_to_id: dict[tuple[str, int], str]):
+    def update_from(self, idx_to_id: dict[tuple[str, int], str | None]):
         """
         Apply updates listed under this container's name to the list
 

@@ -177,6 +177,16 @@ class WindowManager(SingleApplication):
                     self.db_cur.execute("ALTER TABLE {} ADD {} {}".format(table, pair[0], pair[1]))
                 self.db_con.commit()
 
+    def type_of_panel(self, panelid: str) -> str:
+        """
+        Returns the type associated with a panel id.
+
+        :param panelid: ID of the panel to query
+        :return: Type of the panel as stored in the database
+        """
+        res = self.db_cur.execute("SELECT module FROM Panels WHERE id=?", (panelid,))
+        return res.fetchone()['module']
+
     def get_attributes_dict(self, panel_widget: PanelWidget) -> dict[str, object]:
         """
         Retreive a dictionary of the panel's values for each of its type's attributes.
@@ -195,7 +205,7 @@ class WindowManager(SingleApplication):
         else:
             return None
 
-    def get_slots_dict(self, panel_widget: PanelWidget) -> dict[tuple[str, int], str]:
+    def get_slots_dict(self, panel_widget: PanelWidget) -> dict[tuple[str, int], str | None]:
         """
         Retrieve a dictionary of all of the subpanels filling the slots for a panel.
 
@@ -213,7 +223,7 @@ class WindowManager(SingleApplication):
             return None
 
     def update_panel(self, panel_widget: PanelWidget, attribute_dict: dict[str, object],
-                     slots_dict: dict[tuple[str, int], str]):
+                     slots_dict: dict[tuple[str, int], str | None]):
         """
         Updates the panel based on attribute and slot changes.
 

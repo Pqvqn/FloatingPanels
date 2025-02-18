@@ -29,8 +29,8 @@ class PShelfHoriz(PanelWidget):
     def fill_attributes(self, attrs: dict[str, object]):
         raise NotImplementedError("Shelves have no attributes")
 
-    def fill_slots(self, slots: dict[tuple[str, int], str]):
-        self.container.adjust_list(slots)
+    def fill_slots(self, slots: dict[tuple[str, int], str | None]):
+        self.container.update_from(slots)
 
     def get_slot_widget(self, slot: tuple[str, int]) -> 'PanelWidget':
         if slot[0] == 'elem':
@@ -63,8 +63,8 @@ class PShelfVert(PanelWidget):
     def fill_attributes(self, attrs: dict[str, object]):
         raise NotImplementedError("Shelves have no attributes")
 
-    def fill_slots(self, slots: dict[tuple[str, int], str]):
-        self.container.adjust_list(slots)
+    def fill_slots(self, slots: dict[tuple[str, int], str | None]):
+        self.container.update_from(slots)
 
     def get_slot_widget(self, slot: tuple[str, int]) -> 'PanelWidget':
         if slot[0] == 'elem':

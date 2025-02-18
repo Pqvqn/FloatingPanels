@@ -30,8 +30,30 @@ class PType(PanelWidget):
     def fill_attributes(self, attrs: dict[str, object]):
         raise Exception("Type panel has no attributes; cannot fill")
 
-    def fill_slots(self, slots: dict[tuple[str, int], str]):
+    def fill_slots(self, slots: dict[tuple[str, int], str | None]):
         raise Exception("Type panel has no slots; cannot fill")
 
     def get_slot_widget(self, slot: tuple[str, int]) -> 'PanelWidget':
         raise Exception("Type panel has no slots; cannot get")
+
+
+class PCreator(PanelWidget):
+
+    def __init__(self, name: str, manager):
+        super(PCreator, self).__init__(name, manager)
+
+
+    @staticmethod
+    def panel_type() -> str:
+        return "creator"
+
+    def fill_attributes(self, attrs: dict[str, object]):
+        raise Exception("Type creator has no attributes; cannot fill")
+
+    def fill_slots(self, slots: dict[tuple[str, int], str | None]):
+        pass
+
+    def get_slot_widget(self, slot: tuple[str, int]) -> 'PanelWidget':
+        pass
+
+

@@ -75,7 +75,7 @@ class PanelWidget(QFrame):
         # Pass event to parent class
         return super(QWidget, self).eventFilter(source, event)
 
-    def init_from_dicts(self, attributes: dict[str, object], slots: dict[tuple[str, int], str]):
+    def init_from_dicts(self, attributes: dict[str, object], slots: dict[tuple[str, int], str | None]):
         """
         Convenience method for initializing widget values from dictionaries.
 
@@ -94,7 +94,7 @@ class PanelWidget(QFrame):
         """
         raise NotImplementedError("Tried filling attributes in base class")
 
-    def fill_slots(self, slots: dict[tuple[str, int], str]):
+    def fill_slots(self, slots: dict[tuple[str, int], str | None]):
         """
         Fills slots from update dictionary.
         :param slots: Dictionary of updated subpanels for slots. None indicates subpanel in slot must be removed.
@@ -102,7 +102,7 @@ class PanelWidget(QFrame):
         raise NotImplementedError("Tried filling slots in base class")
 
     def pass_down_changes(self, path_to_panel: list[tuple[str, int]], attribute_dict: dict[str, object],
-                          slots_dict: dict[tuple[str, int], str]):
+                          slots_dict: dict[tuple[str, int], str | None]):
         """
         Receive and pass on changes to this widget or its subpanels.
 
@@ -121,7 +121,7 @@ class PanelWidget(QFrame):
             next_step = path_to_panel[0]
             self.get_slot_widget(next_step).pass_down_changes(path_to_panel[1:], attribute_dict, slots_dict)
 
-    def pass_to_db(self, attributes: dict[str, object] = None, slots: dict[tuple[str, int], str] = None):
+    def pass_to_db(self, attributes: dict[str, object] = None, slots: dict[tuple[str, int], str | None] = None):
         """
         Wrapper to pass updates to the manager to change the dictionary and all widgets.
 
