@@ -1,3 +1,4 @@
+from PySide6.QtCore import QSize
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget, QScrollArea, QHBoxLayout
 
@@ -16,6 +17,11 @@ class SlotContainer(QFrame):
         self.setFrameStyle(QFrame.Panel | QFrame.Plain)
 
     def update_from(self, idx_to_id: dict[tuple[str, int], str | None]):
+        """
+        Apply updates listed under this container's name to the container
+
+        :param idx_to_id: Dictionary of slot identifiers to the new value they must have. None indicates removal
+        """
         raise Exception("Update not implemented in base class")
 
 
@@ -24,18 +30,25 @@ class SingleContainer(SlotContainer):
     Type of container that holds a single panel of a specified set of types.
     """
 
-    def __init__(self, parent_panel: PanelWidget, slot_name: str, allowed_types: set = None):
+    def __init__(self, parent_panel: PanelWidget, slot_name: str, allowed_types: set = None, drags=True, drops=True):
         super(SingleContainer, self).__init__(parent_panel, slot_name)
 
-        self.allowed_types = allowed_types
+        self.allowed_types = allowed_types  # Types of panels allowed to fill this slot
+        self.drops = drops  # Whether panels can be dropped into this slot
+        self.drags = drags  # Whether panels can be dragged out of this slot
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
         self.setAcceptDrops(True)
 
+    def sizeHint(self) -> QSize():
+        return QSize(40, 20)
+
     def get_panel_widget(self) -> PanelWidget | None:
         """
         Return the widget held in the container
+
+        :return: Widget in the container, or None if it is empty
         """
         if self.layout.count() == 0:
             return None
@@ -43,11 +56,19 @@ class SingleContainer(SlotContainer):
             return self.layout.itemAt(0).widget()
 
     def dragEnterEvent(self, e):
+        # Only accept if drops enabled
+        if not self.drops:
+            return
+
         # Accept drags with text, as these hold panel id
         if e.mimeData().hasText():
             e.accept()
 
     def dropEvent(self, e):
+        # Only accept if drops enabled
+        if not self.drops:
+            return
+
         panelid = e.mimeData().text()
         # Only accept drops from panel widgets in the allowed type, and only if the container is empty
         if self.layout.count() == 0 and \
@@ -59,6 +80,9 @@ class SingleContainer(SlotContainer):
             e.accept()
 
     def request_removal(self):
+        """
+        Requests that the parent remove the panel from this container
+        """
         # Request removal from parent
         self.parent_panel.pass_to_db(slots={(self.slot_name, 0): None})
 
@@ -77,6 +101,9 @@ class SingleContainer(SlotContainer):
                 # Create widget and add to layout if indicated
                 new_widget = self.parent_panel.make_from_db(panelid)
                 new_widget.request_remove.connect(lambda x: self.request_removal())
+                # If dragging out is disabled, lock the panel in
+                if not self.drags:
+                    new_widget.lock()
                 self.layout.addWidget(new_widget)
 
 
@@ -117,11 +144,6 @@ class ListContainer(SlotContainer):
         return self.container_layout.itemAt(idx).widget()
 
     def update_from(self, idx_to_id: dict[tuple[str, int], str | None]):
-        """
-        Apply updates listed under this container's name to the list
-
-        :param idx_to_id: Dictionary of slot identifiers to the new value they must have. None indicates removal
-        """
 
         # First: skip first few widgets until one needs to be changed. Then remove all the remaining widgets
         # Removal is to simplify the update algorithm. The beginning widgets are excluded because, in the

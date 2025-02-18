@@ -82,7 +82,7 @@ class PFootnote(PanelWidget):
     def __init__(self, name: str, manager):
         super(PFootnote, self).__init__(name, manager)
 
-        # Container that holds all subpanels
+        # Container that holds the panel being commented on
         self.container = SingleContainer(self, 'body', {"task"})
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 

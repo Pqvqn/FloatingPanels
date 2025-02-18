@@ -38,7 +38,7 @@ class WindowManager(SingleApplication):
 
     # Types of panels currently able to be created.
     PANEL_TYPES = {shelves.PShelfVert, shelves.PShelfHoriz, simple_inputs.PTask, simple_inputs.PNumber,
-                   types.PType, shelves.PFootnote}
+                   types.PType, shelves.PFootnote, types.PCreator}
     # TODO: Load panel types automatically from installed scripts
 
     def __init__(self, sid, db_path, *argv):
@@ -69,6 +69,34 @@ class WindowManager(SingleApplication):
         # Stores all panel types by name
         self.panel_classes: dict[str, type] = {p.panel_type(): p for p in self.PANEL_TYPES}
 
+    def invent_panel(self, panelid: str, panel_type: str):
+        """
+        Adds the panelid to the database under the given type.
+
+        :param panelid: ID to create panel under
+        :param panel_type: Type of new panel
+        """
+        # Reject blank string as name
+        if panelid == "":
+            raise Exception("Cannot make panels with no name")
+
+        # Get class for panel type if given
+        panel_class = self.panel_classes[panel_type]
+        if not panel_class.allow_user_creation():
+            raise Exception("User cannot create new panels of this type")
+
+        # Add to metadata table
+        self.db_cur.execute("INSERT INTO Panels VALUES (?, ?)", (panelid, panel_type))
+        if len(panel_class.attributes()) > 0:
+            # If the type has attributes, add this panel's attributes to the type's table
+            self.db_cur.execute("INSERT INTO {}(panelid) VALUES (?)".format(panel_type), (panelid,))
+        self.db_con.commit()
+
+        for pair in panel_class.default_attributes().items():
+            # Update this panel's row in its type's table to the default types
+            self.db_cur.execute("UPDATE {} SET {}=? WHERE panelid=?".format(panel_type, pair[0]), (pair[1], panelid))
+            self.db_con.commit()
+
     def make_panel_widget(self, panelid: str, panel_type: str = None) -> PanelWidget:
         """
         Creates a widget representing a panel.
@@ -79,35 +107,21 @@ class WindowManager(SingleApplication):
         :param panel_type: The type of panel to create and add to the database. If None, no new panel is created.
         :return: A new PanelWidget.
         """
-        if panel_type is not None:
-            # Get class for panel type if given
-            panel_class = self.panel_classes[panel_type]
-            if not panel_class.allow_user_creation():
-                raise Exception("User cannot create new panels of this type")
-        else:
-            # If type not given, find it as part of the panel's metadata in the database
-            res = self.db_cur.execute("SELECT module FROM Panels WHERE id = ?", (panelid,))
-            entry = res.fetchone()
-            panel_class = self.panel_classes[entry[0]]
 
+        if panel_type is not None:
+            # If type given, must add panel to database
+            self.invent_panel(panelid, panel_type)
+
+        # Find panel's metadata in the database
+        res = self.db_cur.execute("SELECT module FROM Panels WHERE id = ?", (panelid,))
+        entry = res.fetchone()
+        panel_class = self.panel_classes[entry[0]]
 
         # Form the new widget
         widget = panel_class(panelid, self)
 
-        # If a new panel was created, add it to the database
-        if panel_type is not None:
-            # Add to metadata table
-            self.db_cur.execute("INSERT INTO Panels VALUES (?, ?)", (panelid, panel_type))
-            if len(panel_class.attributes()) > 0:
-                # If the type has attributes, add this panel's attributes to the type's table
-                self.db_cur.execute("INSERT INTO {}(panelid) VALUES (?)".format(panel_type), (panelid,))
-            self.db_con.commit()
-            self.update_panel(widget, widget.default_attributes(), None)
-            widget.init_from_dicts(None, self.get_slots_dict(widget))
-        else:
-
-            # Initialize all of the panel's values from the database
-            widget.init_from_dicts(self.get_attributes_dict(widget), self.get_slots_dict(widget))
+        # Initialize all of the panel's values from the database
+        widget.init_from_dicts(self.get_attributes_dict(widget), self.get_slots_dict(widget))
 
         return widget
 
