@@ -69,11 +69,14 @@ class SingleContainer(SlotContainer):
             panelid = idx_to_id[key]
             if panelid is None:
                 # Remove from layout if indicated
-                self.layout.removeWidget(self.get_panel_widget())
+                wid = self.get_panel_widget()
+                self.layout.removeWidget(wid)
+                wid.setParent(None)
+
             else:
                 # Create widget and add to layout if indicated
                 new_widget = self.parent_panel.make_from_db(panelid)
-                new_widget.request_remove.connect(lambda x: self.request_removal)
+                new_widget.request_remove.connect(lambda x: self.request_removal())
                 self.layout.addWidget(new_widget)
 
 

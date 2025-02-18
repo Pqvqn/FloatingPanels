@@ -83,7 +83,7 @@ class PFootnote(PanelWidget):
         super(PFootnote, self).__init__(name, manager)
 
         # Container that holds all subpanels
-        self.container = SingleContainer(self, 'body')
+        self.container = SingleContainer(self, 'body', {"task"})
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
         layout = QVBoxLayout()
