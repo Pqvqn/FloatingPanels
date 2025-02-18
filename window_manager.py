@@ -38,7 +38,7 @@ class WindowManager(SingleApplication):
 
     # Types of panels currently able to be created.
     PANEL_TYPES = {shelves.PShelfVert, shelves.PShelfHoriz, simple_inputs.PTask, simple_inputs.PNumber,
-                   types.PType}
+                   types.PType, shelves.PFootnote}
     # TODO: Load panel types automatically from installed scripts
 
     def __init__(self, sid, db_path, *argv):

@@ -33,6 +33,15 @@ class SingleContainer(SlotContainer):
         self.setLayout(self.layout)
         self.setAcceptDrops(True)
 
+    def get_panel_widget(self) -> PanelWidget | None:
+        """
+        Return the widget held in the container
+        """
+        if self.layout.count() == 0:
+            return None
+        else:
+            return self.layout.itemAt(0).widget()
+
     def dragEnterEvent(self, e):
         # Accept drags with text, as these hold panel id
         if e.mimeData().hasText():
@@ -60,7 +69,7 @@ class SingleContainer(SlotContainer):
             panelid = idx_to_id[key]
             if panelid is None:
                 # Remove from layout if indicated
-                self.layout.removeWidget(self.layout.itemAt(0).widget())
+                self.layout.removeWidget(self.get_panel_widget())
             else:
                 # Create widget and add to layout if indicated
                 new_widget = self.parent_panel.make_from_db(panelid)
