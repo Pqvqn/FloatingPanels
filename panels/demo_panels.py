@@ -1,6 +1,7 @@
 from PySide6.QtCore import QSize
 from PySide6.QtWidgets import QSizePolicy, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSpinBox
 
+from custom_widgets import VerticalText
 from panel_widget import PanelWidget
 from slot_containers import ListContainer
 
@@ -14,9 +15,10 @@ class PShelfHoriz(PanelWidget):
 
         # Container that holds all subpanels
         self.container = ListContainer(self, 'elem', True)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
 
-        layout = QVBoxLayout()
-        layout.addWidget(QLabel(self.name))
+        layout = QHBoxLayout()
+        layout.addWidget(VerticalText(self.name))
         layout.addWidget(self.container)
         self.setLayout(layout)
 
@@ -46,6 +48,7 @@ class PShelfVert(PanelWidget):
 
         # Container that holds all subpanels
         self.container = ListContainer(self, 'elem')
+        self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Expanding)
 
         layout = QVBoxLayout()
         layout.addWidget(QLabel(self.name))
@@ -77,7 +80,7 @@ class PTask(PanelWidget):
     def __init__(self, name, manager):
         super(PTask, self).__init__(name, manager)
 
-        self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
 
         self.checkbox = QPushButton()
         self.checkbox.setFixedSize(20, 20)
@@ -90,7 +93,7 @@ class PTask(PanelWidget):
         self.checkbox.pressed.connect(lambda: self.pass_to_db(attributes={"checked": not self.checkbox.text()}))
 
     def sizeHint(self) -> QSize:
-        return QSize(240, 40)
+        return QSize(40, 40)
 
     @staticmethod
     def panel_type() -> str:
@@ -128,7 +131,7 @@ class PNumber(PanelWidget):
     def __init__(self, name, manager):
         super(PNumber, self).__init__(name, manager)
 
-        self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
 
         self.num = QSpinBox()
         self.text = QLabel(name)
@@ -140,7 +143,7 @@ class PNumber(PanelWidget):
         self.num.editingFinished.connect(lambda: self.pass_to_db(attributes={"value": self.num.value()}))
 
     def sizeHint(self) -> QSize:
-        return QSize(240, 40)
+        return QSize(40, 40)
 
     @staticmethod
     def panel_type() -> str:
