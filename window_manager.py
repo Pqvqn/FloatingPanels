@@ -150,6 +150,10 @@ class WindowManager(SingleApplication):
         # Delete widgets when a remove is requested. Happens when a drag is performed
         widget.request_remove.connect(lambda x: x.deleteLater())
 
+        # Let window prepare anything that is unique to windows
+        widget.prepare_window()
+
+        # Open as window, as now parent is set
         widget.show()
 
         if position is not None:

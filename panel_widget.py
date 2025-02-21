@@ -1,5 +1,5 @@
 from PySide6.QtCore import QEvent, Signal
-from PySide6.QtGui import Qt
+from PySide6.QtGui import Qt, QAction
 from PySide6.QtWidgets import QWidget, QFrame, QApplication
 
 
@@ -32,6 +32,10 @@ class PanelWidget(QFrame):
         self.installEventFilter(self)
         # Initiate database for this type if it isn't already initialized
         self.manager.try_init_type_in_db(self)
+
+        # Right clicking should by default pass to parent
+        # This is changed if prepared as a window
+        self.setContextMenuPolicy(Qt.NoContextMenu)
 
         self.dragStartPosition = None
 
@@ -191,3 +195,40 @@ class PanelWidget(QFrame):
         elif b == Qt.RightButton:
             # Right click for Copy: keep within container
             self.manager.drag_panel(self, Qt.CopyAction)
+
+    def prepare_window(self):
+        """
+        Prepares this widget to operate as a window.
+        """
+        # Setup actions for context menu
+        # Pins window above all others
+        pin = QAction("📌 Pin", self)
+        pin.setCheckable(True)
+        pin.toggled.connect(self.set_pinned)
+        # Make window translucent
+        translucent = QAction("👁 Translucent", self)
+        translucent.setCheckable(True)
+        translucent.toggled.connect(self.set_translucent)
+
+        self.addActions([pin, translucent])
+
+        # Actions should make up the context menu
+        self.setContextMenuPolicy(Qt.ActionsContextMenu)
+
+    def set_pinned(self, is_pin: bool):
+        """
+        Sets whether this window should display on top of all other windows
+
+        :param is_pin: True if window should be displayed on top
+        """
+        self.setWindowFlag(Qt.WindowStaysOnTopHint, is_pin)
+        # Changing window flags on the fly hides the window. Must show it
+        self.show()
+
+    def set_translucent(self, is_translucent: bool):
+        """
+        Sets whether this window should be partially see-through
+
+        :param is_translucent: True if window should be see-through
+        """
+        self.setWindowOpacity(0.5 if is_translucent else 1)
