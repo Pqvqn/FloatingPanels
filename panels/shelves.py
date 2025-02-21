@@ -83,7 +83,7 @@ class PFootnote(PanelWidget):
         super(PFootnote, self).__init__(name, manager)
 
         # Container that holds the panel being commented on
-        self.container = SingleContainer(self, 'body', allowed_types={"task"})
+        self.container = SingleContainer(self, 'body')
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
         layout = QVBoxLayout()

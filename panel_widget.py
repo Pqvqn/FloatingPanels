@@ -180,7 +180,7 @@ class PanelWidget(QFrame):
             return
 
         # Only process dragging once the mouse has moved far enough
-        if (e.pos() - self.dragStartPosition).manhattanLength() < QApplication.startDragDistance() * 6:
+        if (e.pos() - self.dragStartPosition).manhattanLength() < QApplication.startDragDistance():
             return
 
         if b == Qt.LeftButton:

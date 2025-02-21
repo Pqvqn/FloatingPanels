@@ -1,8 +1,8 @@
 import sqlite3
 import types
 
-from PySide6.QtCore import QMimeData
-from PySide6.QtGui import QDrag, QPixmap, Qt
+from PySide6.QtCore import QMimeData, QPoint
+from PySide6.QtGui import QDrag, QPixmap, Qt, QCursor
 
 from panel_widget import PanelWidget
 from panels import *
@@ -49,6 +49,8 @@ class WindowManager(SingleApplication):
         self.db_cur = None
         self.windows = None
         self.panel_classes = None
+        self.drag_target = None
+        self.drag_panelid = None
 
         # Call init_manager when this object becomes the main application and server
         self.picked.connect(self.init_manager)
@@ -125,13 +127,14 @@ class WindowManager(SingleApplication):
 
         return widget
 
-    def create_window(self, params: tuple[str, str] | tuple[str]):
+    def create_window(self, params: tuple[str, str] | tuple[str], position: QPoint = None):
         """
         Forms a new panel widget and opens it as a floating window.
 
         :param params: Parameters describing how to open the window. First index represents panel id.
                        If a second index is given, it represents the panel type to create a new panel
                        for.
+        :param position: Point on screen that window should be created at
         """
         # Form the widget
         widget = self.make_panel_widget(params[0], params[1] if len(params) > 1 else None)
@@ -146,7 +149,14 @@ class WindowManager(SingleApplication):
         widget.closed.connect(self.window_closed)
         # Delete widgets when a remove is requested. Happens when a drag is performed
         widget.request_remove.connect(lambda x: x.deleteLater())
+
         widget.show()
+
+        if position is not None:
+            # Position window at proper location
+            widget.setGeometry(position.x(), position.y(), widget.width(), widget.height())
+
+
 
     def window_closed(self, window: PanelWidget, name: str):
         """
@@ -311,6 +321,7 @@ class WindowManager(SingleApplication):
         """
         # Create the drag object
         drag = QDrag(self)
+        # Track current drag. Needed for window creation
 
         # Create an image of the panel to follow the cursor
         pixmap = QPixmap(panel.size())
@@ -322,5 +333,38 @@ class WindowManager(SingleApplication):
         drag.setMimeData(mime)
         mime.setText(panel.name)
 
+        # Set receiver for when the drag ends
+        drag.targetChanged.connect(self.set_drag_target)
+        drag.destroyed.connect(lambda x: self.drag_ended())
+        self.drag_target = None
+        self.drag_panelid = panel.name
+
+        if action == Qt.MoveAction:
+            # Make original window invisible so it looks like it's being moved
+            # Using hide() would mess up the drag image
+            panel.setWindowOpacity(0)
+
         # Start drag
         drag.exec_(action)
+
+    def set_drag_target(self, target):
+        """
+        Track the location of the drag target as it changes. Needed to respond
+        to out-of-window drops
+
+        :param target: The widget currently set to receive the drop. None if outside all slots
+        """
+        self.drag_target = target
+
+    def drag_ended(self):
+        """
+        Responds to the current drag ending. Creates a new window if the drag wasn't accepted
+        by a slot.
+        """
+
+        if not self.drag_target:
+            # Create new window at mouse position if dropped outside slot
+            self.create_window((self.drag_panelid,), position=QCursor.pos())
+
+        self.drag_target = None
+        self.drag_panelid = None
