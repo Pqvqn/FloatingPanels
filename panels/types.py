@@ -95,6 +95,7 @@ class PCreator(PanelWidget):
         else:
             raise Exception("No such slot")
 
+
 class PFinder(PanelWidget):
     """
     Panel that holds a manually-refreshed list of every panel of a certain type

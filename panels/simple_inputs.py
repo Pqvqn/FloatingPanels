@@ -66,6 +66,7 @@ class PNumber(PanelWidget):
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
 
         self.num = QSpinBox()
+        self.num.setRange(-(10**8), 10**8)
         self.text = QLabel(name)
         layout = QHBoxLayout()
         layout.addWidget(self.text)
