@@ -38,7 +38,7 @@ class WindowManager(SingleApplication):
 
     # Types of panels currently able to be created.
     PANEL_TYPES = {shelves.PShelfVert, shelves.PShelfHoriz, simple_inputs.PTask, simple_inputs.PNumber,
-                   types.PType, shelves.PFootnote, types.PCreator, types.PFinder}
+                   types.PType, shelves.PFootnote, types.PCreator, types.PFinder, time_manage.PCalendar}
     # TODO: Load panel types automatically from installed scripts
 
     def __init__(self, sid, db_path, *argv):
@@ -86,6 +86,9 @@ class WindowManager(SingleApplication):
         panel_class = self.panel_classes[panel_type]
         if not panel_class.allow_user_creation():
             raise Exception("User cannot create new panels of this type")
+
+        # Initiate database for this type if it isn't already initialized
+        self.try_init_type_in_db(panel_type)
 
         # Add to metadata table
         self.db_cur.execute("INSERT INTO Panels VALUES (?, ?)", (panelid, panel_type))
@@ -175,26 +178,26 @@ class WindowManager(SingleApplication):
         if len(self.windows[name]) == 0:
             del self.windows[name]
 
-    def try_init_type_in_db(self, panel_widget: PanelWidget):
+    def try_init_type_in_db(self, panel_type: str):
         """
         If needed, create a database table and type panel for the panel's type.
 
         :param panel_widget: Widget whose type should have its initialization attempted.
         """
 
-        res = self.db_cur.execute("SELECT * from Panels WHERE module='type' and id=?", (panel_widget.panel_type(),))
+        res = self.db_cur.execute("SELECT * from Panels WHERE module='type' and id=?", (panel_type,))
         # Type already initialized in table, don't need to add it
         if res.fetchone() is not None:
             return
 
         # Add a panel of type 'type' to represent this type
-        self.db_cur.execute("INSERT INTO Panels VALUES (?, ?)", (panel_widget.panel_type(), 'type'))
+        self.db_cur.execute("INSERT INTO Panels VALUES (?, ?)", (panel_type, 'type'))
         self.db_con.commit()
 
         # Only needs a table if the type has attributes
-        attributes = panel_widget.attributes()
+        attributes = self.panel_classes[panel_type].attributes()
         if len(attributes) > 0:
-            table = panel_widget.panel_type()
+            table = panel_type
             # Only add table if it doesn't already exist. This line also validates the SQL
             res = self.db_cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
             if res.fetchone() is None:
@@ -205,15 +208,16 @@ class WindowManager(SingleApplication):
                     self.db_cur.execute("ALTER TABLE {} ADD {} {}".format(table, pair[0], pair[1]))
                 self.db_con.commit()
 
-    def type_of_panel(self, panelid: str) -> str:
+    def type_of_panel(self, panelid: str) -> str | None:
         """
         Returns the type associated with a panel id.
 
         :param panelid: ID of the panel to query
-        :return: Type of the panel as stored in the database
+        :return: Type of the panel as stored in the database. None if absent from db
         """
         res = self.db_cur.execute("SELECT module FROM Panels WHERE id=?", (panelid,))
-        return res.fetchone()['module']
+        fetched = res.fetchone()
+        return fetched['module'] if fetched is not None else None
 
     def get_attributes_dict(self, panel_widget: PanelWidget) -> dict[str, object]:
         """

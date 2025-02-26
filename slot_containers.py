@@ -43,8 +43,10 @@ class SingleContainer(SlotContainer):
     Type of container that holds a single panel of a specified set of types.
     """
 
-    def __init__(self, parent_panel: PanelWidget, slot_name: str, **kwargs):
+    def __init__(self, parent_panel: PanelWidget, slot_name: str, slot_num: int = 0, **kwargs):
         super(SingleContainer, self).__init__(parent_panel, slot_name, **kwargs)
+
+        self.slot_num = slot_num
 
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -79,7 +81,7 @@ class SingleContainer(SlotContainer):
             return
 
         # Request addition from parent
-        self.parent_panel.pass_to_db(slots={(self.slot_name, 0): panelid})
+        self.parent_panel.pass_to_db(slots={(self.slot_name, self.slot_num): panelid})
 
         # Confirm the drop
         e.accept()
@@ -89,18 +91,19 @@ class SingleContainer(SlotContainer):
         Requests that the parent remove the panel from this container
         """
         # Request removal from parent
-        self.parent_panel.pass_to_db(slots={(self.slot_name, 0): None})
+        self.parent_panel.pass_to_db(slots={(self.slot_name, self.slot_num): None})
 
     def update_from(self, idx_to_id: dict[tuple[str, int], str | None]):
-        key = (self.slot_name, 0)
+        key = (self.slot_name, self.slot_num)
         # Search in update dict for the key
         if key in idx_to_id:
             panelid = idx_to_id[key]
             if panelid is None:
                 # Remove from layout if indicated
                 wid = self.get_panel_widget()
-                self.layout.removeWidget(wid)
-                wid.setParent(None)
+                if wid is not None:
+                    self.layout.removeWidget(wid)
+                    wid.setParent(None)
 
             else:
                 # Check if there's already a panel in this slot before adding new one

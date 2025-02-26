@@ -30,8 +30,6 @@ class PanelWidget(QFrame):
         self.setWindowTitle(self.name)
 
         self.installEventFilter(self)
-        # Initiate database for this type if it isn't already initialized
-        self.manager.try_init_type_in_db(self)
 
         # Right clicking should by default pass to parent
         # This is changed if prepared as a window
