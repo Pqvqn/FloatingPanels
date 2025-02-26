@@ -104,10 +104,10 @@ class PCalendar(PanelWidget):
 
     def generate_month(self):
         date = QDate(self.year_edit.value(), self.month_edit.value(), 1)
-        self.month_label.setText(date.toString("MMMM"))
+        self.month_label.setText(date.toString("MMMM yyyy"))
         updates_dict = {("day", x): None for x in range(42)}
         for i in range(date.daysInMonth()):
-            id_str = self.name + "/" + date.addDays(i).toString("yyyyMMdd")
+            id_str = self.name + "/" + date.addDays(i).toString("d-MMM-yyyy")
             cell = self.day_to_cell(i + 1)
             idx = cell[0] * 7 + cell[1]
             if self.manager.type_of_panel(id_str) is None:
