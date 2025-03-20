@@ -1,5 +1,5 @@
 from PySide6.QtGui import Qt
-from PySide6.QtWidgets import QSizePolicy, QLabel, QVBoxLayout, QHBoxLayout
+from PySide6.QtWidgets import QSizePolicy, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout
 
 from custom_widgets import VerticalText
 from panel_widget import PanelWidget
@@ -107,5 +107,53 @@ class PFootnote(PanelWidget):
     def get_slot_widget(self, slot: tuple[str, int]) -> 'PanelWidget':
         if slot[0] == 'body':
             return self.container.get_panel_widget()
+        else:
+            raise Exception("No such slot")
+
+
+class PMatrix(PanelWidget):
+    """
+    Panel containing a constant number of slots in a 2d array
+    """
+
+    def __init__(self, name: str, manager):
+        super(PMatrix, self).__init__(name, manager)
+
+        self.grid = QGridLayout()
+        self.dimx = 2
+        self.dimy = 4
+
+        # Containers making up the grid
+        for y in range(self.dimy):
+            for x in range(self.dimx):
+                container = SingleContainer(self, 'cell.'+str(y)+'.'+str(x))
+                self.grid.addWidget(container, y, x)
+
+        title = QLabel(name)
+        title.setFixedHeight(15)
+
+        layout = QVBoxLayout()
+        layout.addWidget(title)
+        layout.addLayout(self.grid)
+        self.setLayout(layout)
+        self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+
+
+    @staticmethod
+    def panel_type() -> str:
+        return "matrix"
+
+    def fill_attributes(self, attrs: dict[str, object]):
+        raise NotImplementedError("Matrices have no attributes")
+
+    def fill_slots(self, slots: dict[tuple[str, int], str | None]):
+        for y in range(self.dimy):
+            for x in range(self.dimx):
+                self.grid.itemAtPosition(y, x).widget().update_from(slots)
+
+    def get_slot_widget(self, slot: tuple[str, int]) -> 'PanelWidget':
+        divided = slot[0].split('.')
+        if divided[0] == 'cell':
+            return self.grid.itemAtPosition(int(divided[1]), int(divided[2])).widget()
         else:
             raise Exception("No such slot")
